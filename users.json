@@ -1,0 +1,52 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "john_doe",
+      "browser": "Chrome 120.0.0",
+      "status": "online"
+    },
+    {
+      "id": 2,
+      "username": "jane_smith",
+      "browser": "Firefox 121.0",
+      "status": "offline"
+    },
+    {
+      "id": 3,
+      "username": "mike_johnson",
+      "browser": "Safari 17.2",
+      "status": "online"
+    },
+    {
+      "id": 4,
+      "username": "sarah_williams",
+      "browser": "Edge 120.0.0",
+      "status": "online"
+    },
+    {
+      "id": 5,
+      "username": "alex_brown",
+      "browser": "Chrome 119.0.0",
+      "status": "offline"
+    },
+    {
+      "id": 6,
+      "username": "emma_davis",
+      "browser": "Firefox 120.0",
+      "status": "online"
+    },
+    {
+      "id": 7,
+      "username": "chris_wilson",
+      "browser": "Chrome 120.0.0",
+      "status": "offline"
+    },
+    {
+      "id": 8,
+      "username": "olivia_taylor",
+      "browser": "Safari 17.1",
+      "status": "online"
+    }
+  ]
+}
