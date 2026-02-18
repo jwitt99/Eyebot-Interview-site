@@ -19,33 +19,39 @@ export default function Home() {
   );
   const [showWelcome, setShowWelcome] = useState(false);
 
-  const getMessages = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/messages');
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-      const data = await response.json();
+  const connectToMessagesStream = () => {
+    const eventSource = new EventSource('http://localhost:3001/api/messages/stream');
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
       dispatch(setMessages(data.messages));
       dispatch(setError(null));
-    } catch (err) {
-      dispatch(setError(err instanceof Error ? err.message : 'An error occurred'));
-    } finally {
       dispatch(setLoading(false));
-    }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('Messages SSE connection error:', error);
+      dispatch(setError('Failed to connect to message stream'));
+      eventSource.close();
+    };
+    
+    return eventSource;
   };
 
-  const getActiveUsers = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/users/active');
-      if (!response.ok) {
-        throw new Error('Failed to fetch active users');
-      }
-      const data = await response.json();
-      dispatch(setActiveUsersCount(data.users.length));
-    } catch (err) {
-      console.error('Failed to fetch active users:', err);
-    }
+  const connectToActiveUsersStream = () => {
+    const eventSource = new EventSource('http://localhost:3001/api/users/active/stream');
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      dispatch(setActiveUsersCount(data.activeUsersCount));
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+    
+    return eventSource;
   };
 
   const postMessage = async (content: string) => {
@@ -67,17 +73,53 @@ export default function Home() {
         throw new Error('Failed to post message');
       }
 
-      await getMessages();
+      // Messages will update automatically via SSE
     } catch (err) {
       dispatch(setError(err instanceof Error ? err.message : 'Failed to post message'));
     }
   };
 
+  const login = async () => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) return;
+
+      await fetch('http://localhost:3001/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username }),
+      });
+    } catch (err) {
+      console.error('Failed to login:', err);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) return;
+
+      await fetch('http://localhost:3001/api/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username }),
+      });
+    } catch (err) {
+      console.error('Failed to logout:', err);
+    }
+  };
+
   useEffect(() => {
-    getMessages();
-    getActiveUsers();
-    const messagesInterval = setInterval(getMessages, 3000);
-    const usersInterval = setInterval(getActiveUsers, 5000);
+    // Set user status to online when page loads
+    login();
+    
+    // Connect to SSE for real-time updates
+    const messagesEventSource = connectToMessagesStream();
+    const activeUsersEventSource = connectToActiveUsersStream();
     
     if (location.state?.fromLogin) {
       const hasShownWelcome = sessionStorage.getItem('hasShownWelcome');
@@ -87,9 +129,11 @@ export default function Home() {
       }
     }
     
+    // Cleanup function: When the component unmounts (user navigates away or component is removed), close SSE connections and log user out 
     return () => {
-      clearInterval(messagesInterval);
-      clearInterval(usersInterval);
+      messagesEventSource.close();
+      activeUsersEventSource.close();
+      logout();
     };
   }, []);
 
@@ -103,12 +147,12 @@ export default function Home() {
 
   return (
     <Container
-      maxWidth="md"
       sx={{
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         paddingY: 2,
+        backgroundColor: '#F5F5DC',
       }}
     >
       <Box
@@ -119,10 +163,10 @@ export default function Home() {
           marginBottom: 2,
         }}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant="h4" component="h1" color="primary">
           Chat
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="green">
           {activeUsersCount} active {activeUsersCount === 1 ? 'user' : 'users'}
         </Typography>
       </Box>

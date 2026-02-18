@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -16,14 +17,50 @@ app.use(express.json());
 const USERS_FILE = path.join(__dirname, '../database/users.json');
 const MESSAGES_FILE = path.join(__dirname, '../database/messages.json');
 
+// Store SSE clients
+const activeUserClients = [];
+const messageClients = [];
 
-// ideally would use websocket to track changes and update accordingly
-fs.watch(USERS_FILE, (eventType, filename) => {
+// Broadcast active user count to all connected clients
+const broadcastActiveUserCount = async () => {
+  try {
+    const data = await readUsersData();
+    const activeUsers = data.users.filter(user => user.status === 'online');
+    const count = activeUsers.length;
+    
+    activeUserClients.forEach(client => {
+      client.res.write(`data: ${JSON.stringify({ activeUsersCount: count })}\n\n`);
+    });
+  } catch (error) {
+    console.error('Error broadcasting active user count:', error);
+  }
+};
+
+// Broadcast messages to all connected clients
+const broadcastMessages = async () => {
+  try {
+    const data = await readMessagesData();
+    const sortedMessages = data.messages.sort((a, b) => {
+      return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    
+    messageClients.forEach(client => {
+      client.res.write(`data: ${JSON.stringify({ messages: sortedMessages })}\n\n`);
+    });
+  } catch (error) {
+    console.error('Error broadcasting messages:', error);
+  }
+};
+
+// Watch users file for changes and broadcast updates
+fsSync.watch(USERS_FILE, (eventType, filename) => {
   console.log("\nUsers file modified:", eventType);
+  broadcastActiveUserCount();
 });
 
-fs.watch(MESSAGES_FILE, (eventType, filename) => {
+fsSync.watch(MESSAGES_FILE, (eventType, filename) => {
   console.log("\nMessages file modified:", eventType);
+  broadcastMessages();
 });
 
 const readUsersData = async () => {
@@ -55,6 +92,27 @@ const readMessagesData = async () => {
   }
 };
 
+const writeMessagesData = async (data) => {
+  try {
+    await fs.writeFile(MESSAGES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Error writing messages file:', error);
+    throw error;
+  }
+};
+
+const findUser = async (username) => {
+  try {
+    const data = await readUsersData();
+    return data.users.find(
+      user => user.username.toLowerCase() === username.toLowerCase()
+    );
+  } catch (error) {
+    console.error('Error checking if user exists:', error);
+    return null;
+  }
+};
+
 app.get('/api/users/active', async (req, res) => {
   try {
     const data = await readUsersData();
@@ -63,6 +121,58 @@ app.get('/api/users/active', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch active users' });
   }
+});
+
+app.get('/api/users/active/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  const client = { id: clientId, res };
+  activeUserClients.push(client);
+
+  // Send initial active user count
+  readUsersData().then(data => {
+    const activeUsers = data.users.filter(user => user.status === 'online');
+    res.write(`data: ${JSON.stringify({ activeUsersCount: activeUsers.length })}\n\n`);
+  });
+
+  req.on('close', () => {
+    const index = activeUserClients.findIndex(c => c.id === clientId);
+    if (index !== -1) {
+      activeUserClients.splice(index, 1);
+    }
+    console.log(`Client ${clientId} disconnected from active users SSE`);
+  });
+});
+
+app.get('/api/messages/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  const client = { id: clientId, res };
+  messageClients.push(client);
+
+  // Send initial messages
+  readMessagesData().then(data => {
+    const sortedMessages = data.messages.sort((a, b) => {
+      return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    res.write(`data: ${JSON.stringify({ messages: sortedMessages })}\n\n`);
+  });
+
+  req.on('close', () => {
+    const index = messageClients.findIndex(c => c.id === clientId);
+    if (index !== -1) {
+      messageClients.splice(index, 1);
+    }
+    console.log(`Client ${clientId} disconnected from messages SSE`);
+  });
 });
 
 app.get('/api/users/usernames', async (req, res) => {
@@ -94,17 +204,15 @@ app.post('/api/users', async (req, res) => {
       });
     }
 
-    const data = await readUsersData();
-
-    const existingUser = data.users.find(
-      user => user.username.toLowerCase() === username.toLowerCase()
-    );
+    const existingUser = await findUser(username);
 
     if (existingUser) {
       return res.status(409).json({ 
         error: 'Username already exists' 
       });
     }
+
+    const data = await readUsersData();
 
     const newUser = {
       id: data.users.length > 0 
@@ -118,12 +226,78 @@ app.post('/api/users', async (req, res) => {
     data.users.push(newUser);
     await writeUsersData(data);
 
+    // Broadcast will happen automatically via fs.watch
+
     res.status(201).json({ 
       message: 'User created successfully', 
       user: newUser 
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+app.post('/api/users/login', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ 
+        error: 'Username is required' 
+      });
+    }
+
+    const user = await findUser(username);
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found' 
+      });
+    }
+
+    const data = await readUsersData();
+
+    user.status = 'online';
+    await writeUsersData(data);
+
+    res.status(200).json({ 
+      message: 'User logged in successfully', 
+      user 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to login user' });
+  }
+});
+
+app.post('/api/users/logout', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ 
+        error: 'Username is required' 
+      });
+    }
+
+    const user = await findUser(username);
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found' 
+      });
+    }
+
+    const data = await readUsersData();
+
+    user.status = 'offline';
+    await writeUsersData(data);
+
+    res.status(200).json({ 
+      message: 'User logged out successfully', 
+      user 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to logout user' });
   }
 });
 
@@ -139,6 +313,37 @@ app.get('/api/messages', async (req, res) => {
     res.json({ messages: sortedMessages });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+
+app.post('/api/messages', async (req, res) => {
+  try {
+    const { username, content, timestamp } = req.body;
+
+    if (!username || !content) {
+      return res.status(400).json({ 
+        error: 'Username and content are required' 
+      });
+    }
+
+    const data = await readMessagesData();
+
+    const newMessage = {
+      username,
+      content,
+      timestamp: timestamp || new Date().toISOString()
+    };
+
+    data.messages.push(newMessage);
+    await writeMessagesData(data);
+
+    res.status(201).json({ 
+      message: 'Message posted successfully', 
+      data: newMessage 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to post message' });
   }
 });
 

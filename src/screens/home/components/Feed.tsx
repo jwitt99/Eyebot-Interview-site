@@ -16,7 +16,7 @@ export default function Feed({ messages }: FeedProps) {
       }}
     >
       {messages.map((message, index) => (
-        <Message key={`${message.username}-${message.timestamp}-${index}`} message={message} />
+        <Message key={`${message.username}-${message.timestamp}-${index}`} message={message} index={index} />
       ))}
     </Box>
   );

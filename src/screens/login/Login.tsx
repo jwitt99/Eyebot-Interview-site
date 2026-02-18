@@ -18,7 +18,6 @@ const Login = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [existingUsernames, setExistingUsernames] = useState<string[]>([]);
 
@@ -33,7 +32,6 @@ const Login = () => {
         throw new Error('Failed to fetch usernames');
       }
       const data = await response.json();
-      console.log("🚀 ~ fetchUsernames ~ data:", data)
       
       setExistingUsernames(data.usernames);
     } catch (err) {
@@ -44,7 +42,6 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess(false);
 
     if (!username.trim()) {
       setError('Username is required');
@@ -81,10 +78,8 @@ const Login = () => {
         setError(data.error || 'Failed to create user');
         return;
       }
-      console.log("🚀 ~ handleSubmit ~ data:", data)
       
       localStorage.setItem('username', username.trim());
-      setSuccess(true);
       
       setTimeout(() => {
         navigate('/home', { state: { fromLogin: true } });
@@ -100,13 +95,11 @@ const Login = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        width: '50vh',
+        height: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: 2,
       }}
     >
       <Container>
@@ -124,7 +117,7 @@ const Login = () => {
               align="center"
               sx={{ mb: 4, fontWeight: 600 }}
             >
-              Login
+              Create an account
             </Typography>
 
             <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -143,12 +136,6 @@ const Login = () => {
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
-                </Alert>
-              )}
-
-              {success && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  Username "{username}" is available and valid!
                 </Alert>
               )}
 

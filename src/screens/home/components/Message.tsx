@@ -3,9 +3,10 @@ import type { Message as MessageType } from '../../../types/Message';
 
 interface MessageProps {
   message: MessageType;
+  index: number;
 }
 
-export default function Message({ message }: MessageProps) {
+export default function Message({ message, index }: MessageProps) {
   return (
     <Box
       sx={{
@@ -13,9 +14,7 @@ export default function Message({ message }: MessageProps) {
         gap: 2,
         padding: 1.5,
         borderRadius: 1,
-        '&:hover': {
-          backgroundColor: 'rgba(0, 0, 0, 0.02)',
-        },
+        backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F0F0F0',
       }}
     >
       <Typography
@@ -28,7 +27,7 @@ export default function Message({ message }: MessageProps) {
       >
         {message.username}:
       </Typography>
-      <Typography component="span" sx={{ flex: 1 }}>
+      <Typography component="span" sx={{ flex: 1, color: '#000000' }}>
         {message.content}
       </Typography>
     </Box>
