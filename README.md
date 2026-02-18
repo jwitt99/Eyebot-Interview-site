@@ -1,15 +1,43 @@
-# React + TypeScript + Vite
+# Eyebot Interview - Real-time Chat Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time chat application built for the Eyebot interview.
+Prompt: https://eyeballs.notion.site/Full-Stack-Engineer-Interview-Prompt-306fff2c9c5f803c86e8cef2b6916a4b#306fff2c9c5f80158a37ff4fbf052500
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Frontend
+- React 19
+- TypeScript
+- Vite
+- Material-UI (MUI)
+- Redux Toolkit
+- React Router
 
-## React Compiler
+### Backend
+- Node.js
+- Express.js
+- SSE
+- File System (JSON database)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Key Features
+- Real-time messaging with SSE
+- Live active user count
+- Automatic online/offline status tracking
+- Protected routes with authentication
+- Type-safe development with TypeScript
+
+### TODO: 
+- Implement proper web sockets
+- Add additional style sheets and consistent styling
+
+## Running the Application
+
+1. Install dependencies: `npm install`
+2. Start the backend: `npm run server`
+3. Start the frontend: `npm run dev`
+4. Navigate to `http://localhost:5173`
+
+---
 
 ## Expanding the ESLint configuration
 
