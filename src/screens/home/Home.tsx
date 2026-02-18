@@ -84,7 +84,6 @@ export default function Home() {
   };
 
   const login = async () => {
-    console.log("logging in")
     try {
       const username = localStorage.getItem('username');
       if (!username) return;
@@ -101,7 +100,6 @@ export default function Home() {
   };
 
   const logout = async () => {
-    console.log("logging out")
     try {
       const username = localStorage.getItem('username');
       if (!username) return;
