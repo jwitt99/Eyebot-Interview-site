@@ -14,7 +14,7 @@ Prompt: https://eyeballs.notion.site/Full-Stack-Engineer-Interview-Prompt-306fff
 - React Router
 
 ### Backend
-- Node.js
+- Node.js (22.20)
 - Express.js
 - SSE
 - File System (JSON database)
