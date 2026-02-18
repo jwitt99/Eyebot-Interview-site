@@ -22,9 +22,6 @@ const chatSlice = createSlice({
     setMessages: (state, action: PayloadAction<Message[]>) => {
       state.messages = action.payload;
     },
-    addMessage: (state, action: PayloadAction<Message>) => {
-      state.messages.push(action.payload);
-    },
     setActiveUsersCount: (state, action: PayloadAction<number>) => {
       state.activeUsersCount = action.payload;
     },
@@ -39,7 +36,6 @@ const chatSlice = createSlice({
 
 export const {
   setMessages,
-  addMessage,
   setActiveUsersCount,
   setLoading,
   setError,
