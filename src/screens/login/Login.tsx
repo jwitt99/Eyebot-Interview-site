@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -8,16 +9,39 @@ import {
   Typography,
   Alert,
   Container,
+  CircularProgress,
 } from '@mui/material';
-import type { User, UsersData } from '../types/User';
-import usersData from '../../users.json';
+
+const API_BASE_URL = 'http://localhost:3001/api';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [existingUsernames, setExistingUsernames] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchUsernames();
+  }, []);
+
+  const fetchUsernames = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/usernames`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch usernames');
+      }
+      const data = await response.json();
+      console.log("🚀 ~ fetchUsernames ~ data:", data)
+      
+      setExistingUsernames(data.usernames);
+    } catch (err) {
+      console.error('Error fetching usernames:', err);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
@@ -27,18 +51,50 @@ const Login = () => {
       return;
     }
 
-    const data = usersData as UsersData;
-    const existingUser = data.users.find(
-      (user: User) => user.username.toLowerCase() === username.toLowerCase()
+    const usernameExists = existingUsernames.some(
+      (existingUsername) => existingUsername === username
     );
 
-    if (existingUser) {
+    if (usernameExists) {
       setError('Username already exists. Please choose a different username.');
       return;
     }
 
-    setSuccess(true);
-    console.log('Username is unique and valid:', username);
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          browser: navigator.userAgent,
+          status: 'online',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create user');
+        return;
+      }
+      console.log("🚀 ~ handleSubmit ~ data:", data)
+      
+      localStorage.setItem('username', username.trim());
+      setSuccess(true);
+      
+      setTimeout(() => {
+        navigate('/home', { state: { fromLogin: true } });
+      }, 500);
+    } catch (err) {
+      setError('Network error. Please ensure the server is running on port 3001.');
+      console.error('Error creating user:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -101,6 +157,7 @@ const Login = () => {
                 fullWidth
                 variant="contained"
                 size="large"
+                disabled={loading}
                 sx={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   py: 1.5,
@@ -115,7 +172,7 @@ const Login = () => {
                   transition: 'all 0.2s',
                 }}
               >
-                Continue
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Continue'}
               </Button>
             </Box>
           </CardContent>
