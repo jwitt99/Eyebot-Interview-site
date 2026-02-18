@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Container, Box, Typography, Snackbar, Alert } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Container, Box, Typography, Snackbar, Alert, Button } from '@mui/material';
 import Feed from './components/Feed';
 import MessageWriter from './components/MessageWriter';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -11,16 +11,19 @@ import {
   setError,
 } from '../../store/chatSlice';
 
+const API_BASE_URL = 'http://localhost:3001/api';
+
 export default function Home() {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const { messages, activeUsersCount, loading, error } = useAppSelector(
     (state) => state.chat
   );
   const [showWelcome, setShowWelcome] = useState(false);
 
   const connectToMessagesStream = () => {
-    const eventSource = new EventSource('http://localhost:3001/api/messages/stream');
+    const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`);
     
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -39,7 +42,8 @@ export default function Home() {
   };
 
   const connectToActiveUsersStream = () => {
-    const eventSource = new EventSource('http://localhost:3001/api/users/active/stream');
+    const username = localStorage.getItem('username');
+    const eventSource = new EventSource(`${API_BASE_URL}/users/active/stream?username=${encodeURIComponent(username || '')}`);
     
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -57,7 +61,7 @@ export default function Home() {
   const postMessage = async (content: string) => {
     try {
       const username = localStorage.getItem('username') || 'Anonymous';
-      const response = await fetch('http://localhost:3001/api/messages', {
+      const response = await fetch(`${API_BASE_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,11 +84,11 @@ export default function Home() {
   };
 
   const login = async () => {
+    console.log("logging in")
     try {
       const username = localStorage.getItem('username');
       if (!username) return;
-
-      await fetch('http://localhost:3001/api/users/login', {
+      await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,11 +101,12 @@ export default function Home() {
   };
 
   const logout = async () => {
+    console.log("logging out")
     try {
       const username = localStorage.getItem('username');
       if (!username) return;
 
-      await fetch('http://localhost:3001/api/users/logout', {
+      await fetch(`${API_BASE_URL}/users/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,6 +116,12 @@ export default function Home() {
     } catch (err) {
       console.error('Failed to logout:', err);
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    localStorage.removeItem('username');
+    navigate('/login');
   };
 
   useEffect(() => {
@@ -129,11 +140,11 @@ export default function Home() {
       }
     }
     
-    // Cleanup function: When the component unmounts (user navigates away or component is removed), close SSE connections and log user out 
+    // Cleanup function: When the component unmounts or user closes tab, close SSE connections
+    // The server will automatically mark user as offline when SSE connection closes
     return () => {
       messagesEventSource.close();
       activeUsersEventSource.close();
-      logout();
     };
   }, []);
 
@@ -166,9 +177,19 @@ export default function Home() {
         <Typography variant="h4" component="h1" color="primary">
           Chat
         </Typography>
-        <Typography variant="body2" color="green">
-          {activeUsersCount} active {activeUsersCount === 1 ? 'user' : 'users'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="green">
+            {activeUsersCount} active {activeUsersCount === 1 ? 'user' : 'users'}
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -194,7 +215,7 @@ export default function Home() {
 
       <Snackbar
         open={showWelcome}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setShowWelcome(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >

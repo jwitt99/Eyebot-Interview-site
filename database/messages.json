@@ -27,108 +27,163 @@
     },
     {
       "username": "asdga",
-      "content": "asdf",
+      "content": "Has anyone tried the new features yet?",
       "timestamp": "2026-02-18T06:01:14.079Z"
     },
     {
       "username": "asdga",
-      "content": "basdf",
+      "content": "They look pretty interesting!",
       "timestamp": "2026-02-18T06:01:16.414Z"
     },
     {
       "username": "alice",
       "timestamp": "2026-02-17T20:30:00.000Z",
-      "content": "Hey everyone! Just joined the chat."
+      "content": "The real-time updates are working smoothly now."
     },
     {
       "username": "bob",
       "timestamp": "2026-02-17T20:31:15.000Z",
-      "content": "Welcome Alice! Good to have you here."
+      "content": "Yeah, the SSE implementation is solid!"
     },
     {
       "username": "alice",
       "timestamp": "2026-02-17T20:32:00.000Z",
-      "content": "Thanks Bob! This looks like a great platform."
+      "content": "I noticed the active user count updates instantly."
     },
     {
       "username": "charlie",
       "timestamp": "2026-02-17T20:33:45.000Z",
-      "content": "Hi Alice and Bob! How's everyone doing?"
+      "content": "Should we add more features to the chat?"
     },
     {
       "username": "bob",
       "timestamp": "2026-02-17T20:35:20.000Z",
-      "content": "Doing great! Working on some exciting features."
+      "content": "Maybe emoji support or file sharing?"
     },
     {
       "username": "asdga",
-      "content": "asdf",
+      "content": "File sharing would be awesome!",
       "timestamp": "2026-02-18T06:01:14.079Z"
     },
     {
       "username": "asdga",
-      "content": "basdf",
+      "content": "We could also add message reactions.",
       "timestamp": "2026-02-18T06:01:16.414Z"
     },
     {
       "username": "alice",
       "timestamp": "2026-02-17T20:30:00.000Z",
-      "content": "Hey everyone! Just joined the chat."
+      "content": "What's everyone working on today?"
     },
     {
       "username": "bob",
       "timestamp": "2026-02-17T20:31:15.000Z",
-      "content": "Welcome Alice! Good to have you here."
+      "content": "Debugging some race conditions in the file writes."
     },
     {
       "username": "alice",
       "timestamp": "2026-02-17T20:32:00.000Z",
-      "content": "Thanks Bob! This looks like a great platform."
+      "content": "Oh, the JSON corruption issue?"
     },
     {
       "username": "charlie",
       "timestamp": "2026-02-17T20:33:45.000Z",
-      "content": "Hi Alice and Bob! How's everyone doing?"
+      "content": "I think we fixed that with the write queue."
     },
     {
       "username": "bob",
       "timestamp": "2026-02-17T20:35:20.000Z",
-      "content": "Doing great! Working on some exciting features."
+      "content": "Exactly! No more concurrent write problems."
     },
     {
       "username": "asdga",
-      "content": "asdf",
+      "content": "That's a relief, it was causing issues.",
       "timestamp": "2026-02-18T06:01:14.079Z"
     },
     {
       "username": "asdga",
-      "content": "basdf",
+      "content": "The logout button looks great too!",
       "timestamp": "2026-02-18T06:01:16.414Z"
     },
     {
       "username": "asdga",
-      "content": "asdf",
+      "content": "Now users can properly sign out.",
       "timestamp": "2026-02-18T06:02:18.439Z"
     },
     {
       "username": "asdga",
-      "content": "123",
+      "content": "The beforeunload event handler is working perfectly.",
       "timestamp": "2026-02-18T06:03:19.900Z"
     },
     {
       "username": "asdga",
-      "content": "fdasdf",
+      "content": "Users are marked offline when they close the tab.",
       "timestamp": "2026-02-18T06:03:30.472Z"
     },
     {
       "username": "asdgaa",
-      "content": "sdfasdf",
+      "content": "Anyone want to grab lunch later?",
       "timestamp": "2026-02-18T06:08:00.070Z"
     },
-      {
+    {
       "username": "johnny",
-      "content": "sdfasdf",
+      "content": "Sure! I'm free around noon.",
       "timestamp": "2026-02-18T06:09:00.070Z"
+    },
+    {
+      "username": "asdgaa",
+      "content": "The UI is looking much cleaner now.",
+      "timestamp": "2026-02-18T17:14:11.350Z"
+    },
+    {
+      "username": "asdga",
+      "content": "Material-UI components really help with consistency.",
+      "timestamp": "2026-02-18T17:22:54.378Z"
+    },
+    {
+      "username": "asdga",
+      "content": "Should we add dark mode support?",
+      "timestamp": "2026-02-18T17:26:27.951Z"
+    },
+    {
+      "username": "asdga",
+      "content": "That would be a nice touch for users.",
+      "timestamp": "2026-02-18T17:36:41.104Z"
+    },
+    {
+      "username": "asdgaa",
+      "content": "I agree! Dark mode is always appreciated.",
+      "timestamp": "2026-02-18T17:36:50.593Z"
+    },
+    {
+      "username": "344521",
+      "content": "We could also add user avatars.",
+      "timestamp": "2026-02-18T17:37:03.685Z"
+    },
+    {
+      "username": "123",
+      "content": "Great ideas everyone! Let's prioritize these features.",
+      "timestamp": "2026-02-18T17:48:02.197Z"
+    },
+    {
+      "username": "145",
+      "content": "I concur",
+      "timestamp": "2026-02-18T17:56:20.687Z"
+    },
+    {
+      "username": "687",
+      "content": "45",
+      "timestamp": "2026-02-18T18:02:55.955Z"
+    },
+    {
+      "username": "1",
+      "content": "5",
+      "timestamp": "2026-02-18T18:06:46.837Z"
+    },
+    {
+      "username": "134",
+      "content": "23",
+      "timestamp": "2026-02-18T18:20:55.808Z"
     }
   ]
 }

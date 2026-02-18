@@ -22,6 +22,8 @@ const Login = () => {
   const [existingUsernames, setExistingUsernames] = useState<string[]>([]);
 
   useEffect(() => {
+    // Clear welcome message flag when returning to login
+    sessionStorage.removeItem('hasShownWelcome');
     fetchUsernames();
   }, []);
 
@@ -48,16 +50,26 @@ const Login = () => {
       return;
     }
 
+    setLoading(true);
+
+    // Refetch usernames to ensure we have the latest list
+    try {
+      await fetchUsernames();
+    } catch (err) {
+      setError('Failed to verify username availability. Please try again.');
+      setLoading(false);
+      return;
+    }
+
     const usernameExists = existingUsernames.some(
       (existingUsername) => existingUsername === username
     );
 
     if (usernameExists) {
       setError('Username already exists. Please choose a different username.');
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
 
     try {
       const response = await fetch(`${API_BASE_URL}/users`, {

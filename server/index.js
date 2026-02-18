@@ -13,6 +13,7 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.text({ type: 'text/plain' }));
 
 const USERS_FILE = path.join(__dirname, '../database/users.json');
 const MESSAGES_FILE = path.join(__dirname, '../database/messages.json');
@@ -20,6 +21,10 @@ const MESSAGES_FILE = path.join(__dirname, '../database/messages.json');
 // Store SSE clients
 const activeUserClients = [];
 const messageClients = [];
+
+// Write queues to prevent race conditions
+let usersWriteQueue = Promise.resolve();
+let messagesWriteQueue = Promise.resolve();
 
 // Broadcast active user count to all connected clients
 const broadcastActiveUserCount = async () => {
@@ -54,12 +59,10 @@ const broadcastMessages = async () => {
 
 // Watch users file for changes and broadcast updates
 fsSync.watch(USERS_FILE, (eventType, filename) => {
-  console.log("\nUsers file modified:", eventType);
   broadcastActiveUserCount();
 });
 
 fsSync.watch(MESSAGES_FILE, (eventType, filename) => {
-  console.log("\nMessages file modified:", eventType);
   broadcastMessages();
 });
 
@@ -74,12 +77,16 @@ const readUsersData = async () => {
 };
 
 const writeUsersData = async (data) => {
-  try {
-    await fs.writeFile(USERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error writing users file:', error);
-    throw error;
-  }
+  // Queue the write operation to prevent race conditions
+  usersWriteQueue = usersWriteQueue.then(async () => {
+    try {
+      await fs.writeFile(USERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Error writing users file:', error);
+      throw error;
+    }
+  });
+  return usersWriteQueue;
 };
 
 const readMessagesData = async () => {
@@ -93,12 +100,16 @@ const readMessagesData = async () => {
 };
 
 const writeMessagesData = async (data) => {
-  try {
-    await fs.writeFile(MESSAGES_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error writing messages file:', error);
-    throw error;
-  }
+  // Queue the write operation to prevent race conditions
+  messagesWriteQueue = messagesWriteQueue.then(async () => {
+    try {
+      await fs.writeFile(MESSAGES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Error writing messages file:', error);
+      throw error;
+    }
+  });
+  return messagesWriteQueue;
 };
 
 const findUser = async (username) => {
@@ -130,8 +141,11 @@ app.get('/api/users/active/stream', (req, res) => {
   res.flushHeaders();
 
   const clientId = Date.now();
-  const client = { id: clientId, res };
+  const username = req.query.username; // Get username from query params
+  const client = { id: clientId, res, username };
   activeUserClients.push(client);
+
+  console.log(`Client ${clientId} connected for user: ${username}`);
 
   // Send initial active user count
   readUsersData().then(data => {
@@ -139,12 +153,27 @@ app.get('/api/users/active/stream', (req, res) => {
     res.write(`data: ${JSON.stringify({ activeUsersCount: activeUsers.length })}\n\n`);
   });
 
-  req.on('close', () => {
+  req.on('close', async () => {
     const index = activeUserClients.findIndex(c => c.id === clientId);
     if (index !== -1) {
       activeUserClients.splice(index, 1);
     }
     console.log(`Client ${clientId} disconnected from active users SSE`);
+    
+    // Mark user as offline when SSE connection closes
+    if (username) {
+      try {
+        const data = await readUsersData();
+        const user = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (user && user.status === 'online') {
+          console.log(`Marking user ${username} as offline due to SSE disconnect`);
+          user.status = 'offline';
+          await writeUsersData(data);
+        }
+      } catch (error) {
+        console.error('Error marking user offline on disconnect:', error);
+      }
+    }
   });
 });
 
@@ -240,64 +269,60 @@ app.post('/api/users', async (req, res) => {
 app.post('/api/users/login', async (req, res) => {
   try {
     const { username } = req.body;
-
-    if (!username) {
-      return res.status(400).json({ 
-        error: 'Username is required' 
-      });
-    }
-
-    const user = await findUser(username);
-
-    if (!user) {
-      return res.status(404).json({ 
-        error: 'User not found' 
-      });
-    }
-
     const data = await readUsersData();
-
-    user.status = 'online';
-    await writeUsersData(data);
-
-    res.status(200).json({ 
-      message: 'User logged in successfully', 
-      user 
-    });
+    const user = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    
+    if (user) {
+      user.status = 'online';
+      await writeUsersData(data);
+    }
+    
+    res.status(200).json({ message: 'User logged in', user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to login user' });
+    res.status(500).json({ error: 'Failed to login' });
   }
 });
 
 app.post('/api/users/logout', async (req, res) => {
   try {
-    const { username } = req.body;
-
+    console.log('Logout request received:', req.body);
+    console.log('Content-Type:', req.get('Content-Type'));
+    
+    let username;
+    
+    // Handle both JSON object and text/plain string from sendBeacon
+    if (typeof req.body === 'string') {
+      try {
+        const parsed = JSON.parse(req.body);
+        username = parsed.username;
+      } catch (e) {
+        console.log('Failed to parse body as JSON:', e);
+        username = req.body;
+      }
+    } else if (typeof req.body === 'object' && req.body !== null) {
+      username = req.body.username;
+    }
+    
     if (!username) {
-      return res.status(400).json({ 
-        error: 'Username is required' 
-      });
+      console.log('No username provided in logout request');
+      return res.status(400).json({ error: 'Username is required' });
     }
-
-    const user = await findUser(username);
-
-    if (!user) {
-      return res.status(404).json({ 
-        error: 'User not found' 
-      });
-    }
-
+    
     const data = await readUsersData();
-
-    user.status = 'offline';
-    await writeUsersData(data);
-
-    res.status(200).json({ 
-      message: 'User logged out successfully', 
-      user 
-    });
+    const user = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    
+    if (user) {
+      console.log(`Logging out user: ${username}`);
+      user.status = 'offline';
+      await writeUsersData(data);
+    } else {
+      console.log(`User not found: ${username}`);
+    }
+    
+    res.status(200).json({ message: 'User logged out', user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to logout user' });
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Failed to logout' });
   }
 });
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, TextField, Button } from '@mui/material';
+import { Box, TextField, Button, Typography } from '@mui/material';
 
 interface MessageWriterProps {
   postMessage: (content: string) => void;
@@ -7,6 +7,7 @@ interface MessageWriterProps {
 
 export default function MessageWriter({ postMessage }: MessageWriterProps) {
   const [message, setMessage] = useState('');
+  const username = localStorage.getItem('username') || 'Anonymous';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +25,18 @@ export default function MessageWriter({ postMessage }: MessageWriterProps) {
         display: 'flex',
         gap: 2,
         padding: 2,
+        alignItems: 'center',
       }}
     >
+      <Typography
+        sx={{
+          fontWeight: 'bold',
+          color: 'primary.main',
+          minWidth: 'fit-content',
+        }}
+      >
+        {username}:
+      </Typography>
       <TextField
         fullWidth
         value={message}
